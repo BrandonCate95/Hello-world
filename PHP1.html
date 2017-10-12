@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+
+<html>
+<body>
+<?php
+ob_start();
+?>
+<h1>Hello Welcome!!!</h1>
+
+<ul>
+{
+for $x in doc("books.xml")/bookstore/book/title
+order by $x
+return <li>{data($x)}</li>
+}
+</ul>
+<?php
+echo '1';
+
+file_put_contents('yourpage1.html', ob_get_contents());
+?>
+</body>
+</html>
