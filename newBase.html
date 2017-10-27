@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dynamic Form</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://rawcdn.githack.com/eligrey/FileSaver.js/master/FileSaver.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+
+
+<script language="javascript">
+
+function getSelect() {
+    var parentEl = null, sel;
+    if (window.getSelection) {
+        sel = window.getSelection();
+        if (sel.rangeCount) {
+            parentEl = sel.getRangeAt(0).commonAncestorContainer;
+            if (parentEl.nodeType != 1) {
+                parentEl = parentEl.parentNode.id;
+            }
+        }
+    } else if ( (sel = document.selection) && sel.type != "Control") {
+        parentEl = sel.createRange().parentElement().id;
+    }
+    if(parentEl == "formTest")
+	{
+	  return document.getSelection();
+	}
+}
+
+document.onmouseup = document.onkeyup = document.onselectionchange = function() {
+  var text = getSelect();
+  if(text == undefined)
+  {
+    return;
+  }else
+  {
+    document.getElementById("sel").value = getSelect();
+  }
+  
+};
+
+function makeHeader(){
+  var text = getSelect();
+  
+    if(text == undefined)
+  {
+    return;
+  }else
+  {
+    replaceSelectedText("h1");
+  }
+
+}
+
+//function replaceSelectedText(replacementText) {
+//    var sel, range;
+//    if (window.getSelection) {
+//        sel = window.getSelection();
+//		var text = getSelect();
+//        if (sel.rangeCount) {
+//            range = sel.getRangeAt(0);
+//            range.deleteContents();
+ //           range.insertNode(document.createTextNode("<" + replacementText + ">" + text + "</" + replacementText + ">"));
+ //       }
+ //   } else if (document.selection && document.selection.createRange) {
+ //       var text = getSelect();
+//		range = document.selection.createRange();
+//        range.text = "<" + replacementText + ">" + text + "</" + replacementText + ">";
+//    }
+//}
+
+$(document).ready(function(){   
+	$("#save").click(function() {
+		var rendered = $('html').html(); 
+		var formData = new FormData();
+		
+		var pgName = document.getElementById("pageName1").value;
+		formData.append("content", rendered);
+		formData.append("pageName", pgName);
+		
+		var request = new XMLHttpRequest();
+		request.open("POST", "http://localhost/myPHP.php");
+		request.send(formData);
+		
+		alert("Page Saved as " + pgName);		
+	});      
+});
+
+$(document).ready(function(){
+$("#header").click(function(){
+  $("#formTest").surroundSelectedText('<u>', '</u>');
+});
+});
+
+
+
+
+
+//new shit
+
+function getInputSelection(el) {
+    var start = 0, end = 0, normalizedValue, range,
+        textInputRange, len, endRange;
+
+    if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
+        start = el.selectionStart;
+        end = el.selectionEnd;
+    } else {
+        range = document.selection.createRange();
+
+        if (range && range.parentElement() == el) {
+            len = el.value.length;
+            normalizedValue = el.value.replace(/\r\n/g, "\n");
+
+            // Create a working TextRange that lives only in the input
+            textInputRange = el.createTextRange();
+            textInputRange.moveToBookmark(range.getBookmark());
+
+            // Check if the start and end of the selection are at the very end
+            // of the input, since moveStart/moveEnd doesn't return what we want
+            // in those cases
+            endRange = el.createTextRange();
+            endRange.collapse(false);
+
+            if (textInputRange.compareEndPoints("StartToEnd", endRange) > -1) {
+                start = end = len;
+            } else {
+                start = -textInputRange.moveStart("character", -len);
+                start += normalizedValue.slice(0, start).split("\n").length - 1;
+
+                if (textInputRange.compareEndPoints("EndToEnd", endRange) > -1) {
+                    end = len;
+                } else {
+                    end = -textInputRange.moveEnd("character", -len);
+                    end += normalizedValue.slice(0, end).split("\n").length - 1;
+                }
+            }
+        }
+    }
+
+    return {
+        start: start,
+        end: end
+    };
+}
+
+function offsetToRangeCharacterMove(el, offset) {
+    return offset - (el.value.slice(0, offset).split("\r\n").length - 1);
+}
+
+function setInputSelection(el, startOffset, endOffset) {
+    if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
+        el.selectionStart = startOffset;
+        el.selectionEnd = endOffset;
+    } else {
+        var range = el.createTextRange();
+        var startCharMove = offsetToRangeCharacterMove(el, startOffset);
+        range.collapse(true);
+        if (startOffset == endOffset) {
+            range.move("character", startCharMove);
+        } else {
+            range.moveEnd("character", offsetToRangeCharacterMove(el, endOffset));
+            range.moveStart("character", startCharMove);
+        }
+        range.select();
+    }
+}
+
+function surroundSelectedText(el, before, after) {
+  var val = el.value;
+  var sel = getInputSelection(el);
+  el.value = val.slice(0, sel.start) +
+             before +
+             val.slice(sel.start, sel.end) +
+             after +
+             val.slice(sel.end);
+  var newCaretPosition = sel.end + before.length + after.length;
+  setInputSelection(el, newCaretPosition, newCaretPosition);
+}
+
+function surroundWithLink() {
+  surroundSelectedText(
+    document.getElementById("ta"),
+    '<a href="https://stackoverflow.com/">',
+    '</a>'
+  );
+}
+
+
+function add_tags(tags)
+{
+    document.execCommand(tags);
+}
+
+function add_tag_h3()
+{
+    document.execCommand("fontSize", false, "5");
+}
+
+function remove_tag_h3()
+{
+	document.execCommand("fontSize", false, "3");
+}
+
+function add_link()
+{
+	var url = document.getElementById("addLinkIn").value;
+	document.execCommand("CreateLink", false, url);
+}
+
+</script>
+<style>
+.col-sm-2 {
+  padding-left:20px;
+}
+.col-sm-8 {
+  padding:0;
+}
+h1{
+  font-size:60px;
+}
+h3 {
+  padding-top:10px;
+  padding-bottom:10px;
+  margin:0px;
+}
+form {
+  padding-top:10px;
+  padding-bottom:10px;
+}
+p {
+margin:0;
+}
+
+div.editable{
+width:300px;
+height:200px;
+border:1px solid #ccc;
+padding:5px;
+
+
+}
+
+form {}
+</style>
+</head>
+<body style="position:relative;top:45px;" onload="">
+
+<nav class="container-fluid navbar fixed-top navbar-expand-lg navbar-dark bg-dark" style="padding-top:2.2px;padding-bottom:2.2px;margin:0;">
+  <a class="navbar-brand" style="padding-left:10px;" href="#">Navbar</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="blog.html">Blog</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link disabled" href="#">Disabled</a>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="http://example.com" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Dropdown link
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+          <a class="dropdown-item" href="#">Action</a>
+          <a class="dropdown-item" href="#">Another action</a>
+          <a class="dropdown-item" href="#">Something else here</a>
+        </div>
+      </li>
+    </ul>
+    <form class="form-inline my-2 my-lg-0" style="padding-right:10px;padding-top:0;padding-bottom:0;margin:0;">
+      <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" style="padding-right:0px;">
+      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+    </form>
+  </div>
+</nav>
+
+<div class="col-sm-2 pre-scrollable fixed-top" style="background-color:grey;color:white;overflow-y:auto;max-height:94.5vh;top:44.4px;">
+      <ul>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+        <li>Hello</li>
+      </ul>
+    </div>
+	
+	
+<div class="container-fluid">
+  <div class="row" style="padding:40px;">
+    <div class="col-sm-2"></div>
+    <div class="col-sm-8 diffColor">
+      <h1 id="title">Title Goes here</h1>
+	</div>
+	<div id="titleSideBar" class="col-sm-2 diffColor">
+      <form name="form" action="post" method="">
+      <input type="button" value="edit" onClick="">
+      </form>
+	</div>
+  </div>
+</div>
+
+<div id="blogBody" class="container-fluid">
+  <div class="row" style="padding:40px;">
+    <div class="col-sm-2"></div>
+    <div id="blogBody8" class= "col-sm-8 diffColor" style="word-wrap: break-word;">
+	
+	Selection:
+    <br>
+    <textarea id="sel" rows="3" cols="50"></textarea>
+    <p>Please select some text.</p>
+    <input value="Some text in a text input">
+    <br>
+    <input type="search" value="Some text in a search input">
+    <br>
+    <input type="tel" value="4872349749823">
+    <br>
+    <textarea id="ta1">Some text in a textarea</textarea>	
+	
+	<input type="button" value="B" style="font-weight:bold;" onclick='add_tags("bold");'>
+	<input type="button" value="I" style="font-weight:bold;" onclick='add_tags("italic");'>
+	<input type="button" value="U" style="font-weight:bold;" onclick='add_tags("underline");'>
+	<input type="button" value="H3" style="font-weight:bold;" onclick='add_tag_h3();'>
+	<input type="button" value="H3" style="font-weight:bold;text-decoration:line-through;" onclick='remove_tag_h3();'>
+	
+	<form id="addLink">
+	  <input type="text" name="addLinkInput" id="addLinkIn" value="URL Address here...">
+	  <input type="button" value="Add Link" style="font-weight:bold;" onclick="add_link()">
+	</form>
+
+	<div class="container_contenteditable" contenteditable style="border:1px solid; margin: 10px 0; height: 100px;"></div>
+	
+	
+	</div>
+	
+	
+	<div id="blogBody2" class="col-sm-2 diffColor">
+	
+	<form name="form" action="post" method="">
+      <input id="header" type="button" value="Make Header">
+    </form>
+	
+	</div>  
+  
+  </div>
+
+</div>
+
+<div class="container-fluid">
+  <div class="row justify-content-center" style="padding:40px">
+    <div class="col-sm-8">
+      <form id="saveAs">
+        <button id="save">Save As</button>
+        <input type="text" name="pageName" id="pageName1" value="Page Name...">
+        .html
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
