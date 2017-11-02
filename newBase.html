@@ -13,67 +13,6 @@
 
 <script language="javascript">
 
-function getSelect() {
-    var parentEl = null, sel;
-    if (window.getSelection) {
-        sel = window.getSelection();
-        if (sel.rangeCount) {
-            parentEl = sel.getRangeAt(0).commonAncestorContainer;
-            if (parentEl.nodeType != 1) {
-                parentEl = parentEl.parentNode.id;
-            }
-        }
-    } else if ( (sel = document.selection) && sel.type != "Control") {
-        parentEl = sel.createRange().parentElement().id;
-    }
-    if(parentEl == "formTest")
-	{
-	  return document.getSelection();
-	}
-}
-
-document.onmouseup = document.onkeyup = document.onselectionchange = function() {
-  var text = getSelect();
-  if(text == undefined)
-  {
-    return;
-  }else
-  {
-    document.getElementById("sel").value = getSelect();
-  }
-  
-};
-
-function makeHeader(){
-  var text = getSelect();
-  
-    if(text == undefined)
-  {
-    return;
-  }else
-  {
-    replaceSelectedText("h1");
-  }
-
-}
-
-//function replaceSelectedText(replacementText) {
-//    var sel, range;
-//    if (window.getSelection) {
-//        sel = window.getSelection();
-//		var text = getSelect();
-//        if (sel.rangeCount) {
-//            range = sel.getRangeAt(0);
-//            range.deleteContents();
- //           range.insertNode(document.createTextNode("<" + replacementText + ">" + text + "</" + replacementText + ">"));
- //       }
- //   } else if (document.selection && document.selection.createRange) {
- //       var text = getSelect();
-//		range = document.selection.createRange();
-//        range.text = "<" + replacementText + ">" + text + "</" + replacementText + ">";
-//    }
-//}
-
 $(document).ready(function(){   
 	$("#save").click(function() {
 		var rendered = $('html').html(); 
@@ -90,107 +29,6 @@ $(document).ready(function(){
 		alert("Page Saved as " + pgName);		
 	});      
 });
-
-$(document).ready(function(){
-$("#header").click(function(){
-  $("#formTest").surroundSelectedText('<u>', '</u>');
-});
-});
-
-
-
-
-
-//new shit
-
-function getInputSelection(el) {
-    var start = 0, end = 0, normalizedValue, range,
-        textInputRange, len, endRange;
-
-    if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
-        start = el.selectionStart;
-        end = el.selectionEnd;
-    } else {
-        range = document.selection.createRange();
-
-        if (range && range.parentElement() == el) {
-            len = el.value.length;
-            normalizedValue = el.value.replace(/\r\n/g, "\n");
-
-            // Create a working TextRange that lives only in the input
-            textInputRange = el.createTextRange();
-            textInputRange.moveToBookmark(range.getBookmark());
-
-            // Check if the start and end of the selection are at the very end
-            // of the input, since moveStart/moveEnd doesn't return what we want
-            // in those cases
-            endRange = el.createTextRange();
-            endRange.collapse(false);
-
-            if (textInputRange.compareEndPoints("StartToEnd", endRange) > -1) {
-                start = end = len;
-            } else {
-                start = -textInputRange.moveStart("character", -len);
-                start += normalizedValue.slice(0, start).split("\n").length - 1;
-
-                if (textInputRange.compareEndPoints("EndToEnd", endRange) > -1) {
-                    end = len;
-                } else {
-                    end = -textInputRange.moveEnd("character", -len);
-                    end += normalizedValue.slice(0, end).split("\n").length - 1;
-                }
-            }
-        }
-    }
-
-    return {
-        start: start,
-        end: end
-    };
-}
-
-function offsetToRangeCharacterMove(el, offset) {
-    return offset - (el.value.slice(0, offset).split("\r\n").length - 1);
-}
-
-function setInputSelection(el, startOffset, endOffset) {
-    if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
-        el.selectionStart = startOffset;
-        el.selectionEnd = endOffset;
-    } else {
-        var range = el.createTextRange();
-        var startCharMove = offsetToRangeCharacterMove(el, startOffset);
-        range.collapse(true);
-        if (startOffset == endOffset) {
-            range.move("character", startCharMove);
-        } else {
-            range.moveEnd("character", offsetToRangeCharacterMove(el, endOffset));
-            range.moveStart("character", startCharMove);
-        }
-        range.select();
-    }
-}
-
-function surroundSelectedText(el, before, after) {
-  var val = el.value;
-  var sel = getInputSelection(el);
-  el.value = val.slice(0, sel.start) +
-             before +
-             val.slice(sel.start, sel.end) +
-             after +
-             val.slice(sel.end);
-  var newCaretPosition = sel.end + before.length + after.length;
-  setInputSelection(el, newCaretPosition, newCaretPosition);
-}
-
-function surroundWithLink() {
-  surroundSelectedText(
-    document.getElementById("ta"),
-    '<a href="https://stackoverflow.com/">',
-    '</a>'
-  );
-}
-
 
 function add_tags(tags)
 {
@@ -211,6 +49,77 @@ function add_link()
 {
 	var url = document.getElementById("addLinkIn").value;
 	document.execCommand("CreateLink", false, url);
+}
+
+function remove_link()
+{
+	document.execCommand("unlink");
+}
+
+function add_code() {
+    var div1 = document.createElement("div");
+	var div2 = document.createElement("div");
+    div2.className = "codeSnipet";
+    
+	//two extra cases: 1) when new div el added inside editable-div as newlines and 2) when click inside/outside new-code div 
+    if (window.getSelection && 
+	(window.getSelection().anchorNode.parentElement.id || window.getSelection().anchorNode.parentElement.parentElement.id) == "contentArea") {
+        var sel = window.getSelection();
+        if (sel.rangeCount) {
+			var range = sel.getRangeAt(0).cloneRange();
+			range.surroundContents(div1);
+			range.surroundContents(div2);
+			sel.removeAllRanges();
+			sel.addRange(range);
+        }
+    }
+	
+	var closeBtn = document.createElement("input");
+	closeBtn.type = "button";
+	closeBtn.value = "X";
+	closeBtn.name = "closeButton";
+	closeBtn.className = "closeBtn";
+	closeBtn.onclick = function() {
+		remove_code(closeBtn, window.getSelection());
+	};
+	
+		
+	
+	//position close button
+	//var rect = get_box_positions(div2);
+	//var screen = get_box_positions(document.getElementById("blogBody"));
+	//var posHorizontal = rect.top - 15 - screen.top;
+	//var posVertical = rect.right - 15 - screen.right;
+	//console.log(posHorizontal,posVertical)
+	//closeBtn.style = "position:absolute;top:" + posHorizontal + "px;right:" + posVertical + "px;";
+	
+	
+	div2.insertBefore(closeBtn,div1);
+	
+	//make so cant delete close button
+	$(".closeBtn").attr("readonly", "true");
+	
+	//add space after code div
+	var space = document.createElement("br");
+	var par = div2.parentElement;
+	par.appendChild(space);	
+	
+}
+
+function remove_code(btn, divText){
+	var child = btn.parentElement;
+	var parent = child.parentElement;
+	
+	parent.removeChild(child);
+}
+
+function print_sel(){
+	console.log(document.getSelection().anchorNode.parentElement.id);
+}
+
+function get_box_positions(el){
+	var domRect = el.getBoundingClientRect();
+	return domRect;
 }
 
 </script>
@@ -237,13 +146,24 @@ p {
 margin:0;
 }
 
-div.editable{
-width:300px;
-height:200px;
-border:1px solid #ccc;
+#contentArea{
+background-color:rgb(250,250,250);
 padding:5px;
+}
 
+.stylize{
+height:40px;
+width:40px;
+margin:10px 0px 10px 0px;
+}
 
+.codeSnipet{
+background-color:rgb(240,240,240);
+padding:10px;
+}
+
+.closeBtn{
+float: right;
 }
 
 form {}
@@ -361,44 +281,42 @@ form {}
 </div>
 
 <div id="blogBody" class="container-fluid">
-  <div class="row" style="padding:40px;">
+  <div class="row" style="padding:20px 40px 0px 40px;">
     <div class="col-sm-2"></div>
+	
     <div id="blogBody8" class= "col-sm-8 diffColor" style="word-wrap: break-word;">
-	
-	Selection:
-    <br>
-    <textarea id="sel" rows="3" cols="50"></textarea>
-    <p>Please select some text.</p>
-    <input value="Some text in a text input">
-    <br>
-    <input type="search" value="Some text in a search input">
-    <br>
-    <input type="tel" value="4872349749823">
-    <br>
-    <textarea id="ta1">Some text in a textarea</textarea>	
-	
-	<input type="button" value="B" style="font-weight:bold;" onclick='add_tags("bold");'>
-	<input type="button" value="I" style="font-weight:bold;" onclick='add_tags("italic");'>
-	<input type="button" value="U" style="font-weight:bold;" onclick='add_tags("underline");'>
-	<input type="button" value="H3" style="font-weight:bold;" onclick='add_tag_h3();'>
-	<input type="button" value="H3" style="font-weight:bold;text-decoration:line-through;" onclick='remove_tag_h3();'>
-	
-	<form id="addLink">
-	  <input type="text" name="addLinkInput" id="addLinkIn" value="URL Address here...">
-	  <input type="button" value="Add Link" style="font-weight:bold;" onclick="add_link()">
-	</form>
 
-	<div class="container_contenteditable" contenteditable style="border:1px solid; margin: 10px 0; height: 100px;"></div>
-	
+	  <div id="contentArea" class="container_contenteditable container-fluid" contenteditable>Type here...</div>
 	
 	</div>
 	
-	
 	<div id="blogBody2" class="col-sm-2 diffColor">
+	  
+	  <input class="stylize" type="button" value="B" style="font-weight:bold;" onclick='add_tags("bold");'>
+	  <br />
+	  <input class="stylize" type="button" value="I" style="font-weight:bold;" onclick='add_tags("italic");'>
+	  <br />
+	  <input class="stylize" type="button" value="U" style="font-weight:bold;" onclick='add_tags("underline");'>
+	  <br />
+	  <input class="stylize" type="button" value="H3" style="font-weight:bold;" onclick='add_tag_h3();'>
+	  <br />
+	  <input class="stylize" type="button" value="H3" style="font-weight:bold;text-decoration:line-through;" onclick='remove_tag_h3();'>
+	  <br />
+	  
+	  <input type="button" value="Code" style="font-weight:bold" onclick="add_code()">
+	  <br />
+	  <input type="button" value="Code" style="font-weight:bold;text-decoration:line-through;" onclick="remove_code()">
+	  <br />
 	
-	<form name="form" action="post" method="">
-      <input id="header" type="button" value="Make Header">
-    </form>
+	  <form id="addLink">
+	    <input type="text" name="addLinkInput" id="addLinkIn" value="URL Address here...">
+	    <input type="button" value="Link" style="font-weight:bold;" onclick="add_link()">
+	  </form>
+	  <br />
+	  <input type="button" value="Link" style="font-weight:bold;text-decoration:line-through;" onclick="remove_link()">
+	  
+	  <input type="button" value="print" style="font-weight:bold;" onclick="print_sel()">
+
 	
 	</div>  
   
